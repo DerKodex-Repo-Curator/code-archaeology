@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+.yarn/
+
+# Build outputs
+build/
+dist/
+out/
+.next/
+coverage/
+*.tsbuildinfo
+
+# Runtime/data files
+*.log
+logs/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS/editor artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local tooling caches
+.cache/
+.turbo/
+.vercel/
+
+# Optional local database files
+*.sqlite
+*.sqlite-journal

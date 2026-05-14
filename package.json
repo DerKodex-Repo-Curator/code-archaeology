@@ -1,0 +1,8 @@
+{
+  "name": "code-archaeology",
+  "private": true,
+  "scripts": {
+    "dev:backend": "pnpm --filter backend dev",
+    "dev": "pnpm run dev:backend"
+  }
+}

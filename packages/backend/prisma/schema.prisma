@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Repository {
+  id           String        @id @default(cuid())
+  owner        String
+  name         String
+  clonePath    String        @default("")
+  status       String        @default("pending")
+  createdAt    DateTime      @default(now())
+  commits      Commit[]
+  pullRequests PullRequest[]
+  issues       Issue[]
+
+  @@unique([owner, name])
+}
+
+model Commit {
+  id           String       @id @default(cuid())
+  hash         String       @unique
+  message      String
+  author       String
+  authorEmail  String
+  date         DateTime
+  diff         String?      @db.Text
+  summary      String?      @db.Text
+  prNumber     Int?
+  repositoryId String
+  repository   Repository   @relation(fields: [repositoryId], references: [id])
+  pullRequest  PullRequest? @relation(fields: [prNumber], references: [number])
+}
+
+model CommitEmbedding {
+  id         String  @id @default(cuid())
+  commitHash String  @unique
+  embedding  Float[]
+}
+
+model PullRequest {
+  id           String     @id @default(cuid())
+  number       Int        @unique
+  title        String
+  body         String?    @db.Text
+  author       String
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id])
+  commits      Commit[]
+  issues       Issue[]    @relation("PRIssues")
+}
+
+model Issue {
+  id           String        @id @default(cuid())
+  number       Int           @unique
+  title        String
+  body         String?       @db.Text
+  repositoryId String
+  repository   Repository    @relation(fields: [repositoryId], references: [id])
+  pullRequests PullRequest[] @relation("PRIssues")
+}
