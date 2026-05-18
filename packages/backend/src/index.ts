@@ -11,12 +11,9 @@ import { generateEmbedding, cosineSimilarity } from "./ai/embedder";
 const app = express();
 app.use(express.json());
 app.use((req, _res, next) => {
-  console.log(`${req.method} ${req.path}`);
   next();
 });
 
-// ─── POST /api/repos ─────────────────────────────────────────
-// start processing a repo
 app.post("/api/repos", async (req, res) => {
   const { owner, name } = req.body;
 
@@ -39,7 +36,6 @@ app.post("/api/repos", async (req, res) => {
   }
 });
 
-// ─── GET /api/repos/:id/status ────────────────────────────────
 app.get("/api/repos/:id/status", async (req, res) => {
   const repo = await prisma.repository.findUnique({
     where: { id: req.params.id },
@@ -56,7 +52,6 @@ app.get("/api/repos/:id/status", async (req, res) => {
   });
 });
 
-// ─── GET /api/repos/:id/graph ─────────────────────────────────
 app.get("/api/repos/:id/graph", async (_req, res) => {
   try {
     const graph = await getGraph();
@@ -66,7 +61,6 @@ app.get("/api/repos/:id/graph", async (_req, res) => {
   }
 });
 
-// ─── GET /api/repos/:id/commits ───────────────────────────────
 app.get("/api/repos/:id/commits", async (req, res) => {
   const commits = await prisma.commit.findMany({
     where: { repositoryId: req.params.id },
@@ -85,25 +79,20 @@ app.get("/api/repos/:id/commits", async (req, res) => {
   res.json(commits);
 });
 
-// ─── POST /api/repos/:id/ask ──────────────────────────────────
-// RAG: ask anything about the codebase
 app.post("/api/repos/:id/ask", async (req, res) => {
   const { question } = req.body;
 
   if (!question) return res.status(400).json({ error: "question is required" });
 
   try {
-    // 1. embed the question
     const questionEmbedding = await generateEmbedding(question);
 
-    // 2. get all embeddings from postgres
     const allEmbeddings = await prisma.commitEmbedding.findMany();
 
     if (allEmbeddings.length === 0) {
       return res.json({ answer: "No commits processed yet.", sources: [] });
     }
 
-    // 3. rank by cosine similarity, take top 5
     const ranked = allEmbeddings
       .map((e) => ({
         commitHash: e.commitHash,
@@ -112,7 +101,6 @@ app.post("/api/repos/:id/ask", async (req, res) => {
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
 
-    // 4. fetch commit details
     const commits = await prisma.commit.findMany({
       where: { hash: { in: ranked.map((r) => r.commitHash) } },
       include: {
@@ -120,7 +108,6 @@ app.post("/api/repos/:id/ask", async (req, res) => {
       },
     });
 
-    // 5. build context string
     const context = commits
       .map((c) =>
         `
@@ -133,7 +120,6 @@ Issues: ${c.pullRequest?.issues?.map((i) => i.title).join(", ") || "N/A"}
       )
       .join("\n\n---\n\n");
 
-    // 6. ask ollama with context (RAG)
     const prompt = `You are a code archaeologist. Using the following real decisions made in a codebase, answer the question clearly and concisely.
 
 Context:
@@ -169,7 +155,6 @@ Answer:`;
   }
 });
 
-// ─── GET /api/repos ───────────────────────────────────────────
 app.get("/api/repos", async (_req, res) => {
   const repos = await prisma.repository.findMany({
     include: { _count: { select: { commits: true } } },
@@ -179,9 +164,4 @@ app.get("/api/repos", async (_req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(
-    `\n🔍 Code Archaeology backend running on http://localhost:${PORT}`,
-  );
-  console.log(`📊 Neo4j browser: http://localhost:7474`);
-});
+app.listen(PORT, () => {});

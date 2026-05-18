@@ -16,8 +16,6 @@ export function extractIssueNumbers(text: string): number[] {
   return Array.from(numbers);
 }
 
-// extract PR number from commit message
-// handles: "Merge pull request #123 from..." and "Fix something (#123)"
 export function extractPRNumber(commitMessage: string): number | null {
   const mergeMatch = commitMessage.match(/Merge pull request #(\d+)/i);
   if (mergeMatch) return parseInt(mergeMatch[1]);

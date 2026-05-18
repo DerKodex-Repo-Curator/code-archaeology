@@ -54,7 +54,6 @@ export async function getPRForCommit(
       })),
     };
   } catch (err) {
-    // silently skip — not every commit has a PR
     return null;
   }
 }

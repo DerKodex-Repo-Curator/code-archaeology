@@ -14,17 +14,15 @@ export async function cloneRepo(owner: string, name: string): Promise<string> {
   }
 
   if (fs.existsSync(repoPath)) {
-    console.log(`Repo exists, pulling latest...`);
     const git = simpleGit(repoPath);
     await git.pull();
     return repoPath;
   }
 
-  console.log(`Cloning ${owner}/${name}...`);
   const git = simpleGit();
   await git.clone(`https://github.com/${owner}/${name}.git`, repoPath, [
     "--depth",
-    "500", // only last 500 commits for speed
+    "500",
   ]);
   return repoPath;
 }
@@ -56,9 +54,8 @@ export async function getCommitDiff(
       "--stat",
       "--patch",
       "--no-color",
-      "-U3", // 3 lines of context
+      "-U3",
     ]);
-    // cap at 3000 chars to not blow up ollama context
     return diff.slice(0, 3000);
   } catch {
     return "";
