@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import neo4j from "neo4j-driver";
 import { GraphData } from "@archaeology/shared";
 
@@ -123,7 +126,8 @@ export async function getGraph(): Promise<GraphData> {
   const session = driver.session();
   try {
     const result = await session.run(`
-      MATCH (n)-[r]->(m)
+      MATCH (n)
+      OPTIONAL MATCH (n)-[r]->(m)
       RETURN n, r, m
       LIMIT 300
     `);
@@ -137,7 +141,6 @@ export async function getGraph(): Promise<GraphData> {
       const rel = record.get("r");
 
       const sourceId = source.identity.toString();
-      const targetId = target.identity.toString();
 
       if (!nodesMap.has(sourceId)) {
         nodesMap.set(sourceId, {
@@ -153,25 +156,29 @@ export async function getGraph(): Promise<GraphData> {
         });
       }
 
-      if (!nodesMap.has(targetId)) {
-        nodesMap.set(targetId, {
-          id: targetId,
-          type: target.labels[0].toLowerCase(),
-          label:
-            target.properties.message ||
-            target.properties.title ||
-            `#${target.properties.number}`,
-          summary: target.properties.summary || undefined,
-          author: target.properties.author || undefined,
-          date: target.properties.date || undefined,
+      if (target) {
+        const targetId = target.identity.toString();
+
+        if (!nodesMap.has(targetId)) {
+          nodesMap.set(targetId, {
+            id: targetId,
+            type: target.labels[0].toLowerCase(),
+            label:
+              target.properties.message ||
+              target.properties.title ||
+              `#${target.properties.number}`,
+            summary: target.properties.summary || undefined,
+            author: target.properties.author || undefined,
+            date: target.properties.date || undefined,
+          });
+        }
+
+        edges.push({
+          source: sourceId,
+          target: targetId,
+          relation: rel.type as any,
         });
       }
-
-      edges.push({
-        source: sourceId,
-        target: targetId,
-        relation: rel.type as any,
-      });
     });
 
     return {

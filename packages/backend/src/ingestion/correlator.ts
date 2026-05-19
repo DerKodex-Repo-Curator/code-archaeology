@@ -20,7 +20,7 @@ export function extractPRNumber(commitMessage: string): number | null {
   const mergeMatch = commitMessage.match(/Merge pull request #(\d+)/i);
   if (mergeMatch) return parseInt(mergeMatch[1]);
 
-  const squashMatch = commitMessage.match(/\(#(\d+)\)\s*$/);
+  const squashMatch = commitMessage.match(/\(#(\d+)\)/);
   if (squashMatch) return parseInt(squashMatch[1]);
 
   return null;

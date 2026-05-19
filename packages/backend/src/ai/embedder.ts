@@ -1,15 +1,19 @@
 export async function generateEmbedding(text: string): Promise<number[]> {
-  const response = await fetch(`${process.env.OLLAMA_URL}/api/embeddings`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "nomic-embed-text",
-      prompt: text,
-    }),
-  });
+  try {
+    const response = await fetch(`${process.env.OLLAMA_URL}/api/embeddings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "nomic-embed-text",
+        prompt: text,
+      }),
+    });
 
-  const data = await response.json();
-  return data.embedding as number[];
+    const data = (await response.json()) as { embedding?: number[] };
+    return data.embedding || [];
+  } catch {
+    return [];
+  }
 }
 
 export function cosineSimilarity(a: number[], b: number[]): number {

@@ -1,15 +1,32 @@
-import express from "express";
 import dotenv from "dotenv";
 dotenv.config();
+
+import express from "express";
+import cors from "cors";
 
 import { prisma } from "./db/prisma";
 import { addRepoJob } from "./queue/producer";
 import "./queue/worker"; // boots the worker
-import { getGraph } from "./graph/neo4j";
+import {
+  createCommitNode,
+  createIssueNode,
+  createPRNode,
+  getGraph,
+  linkCommitToPR,
+  linkPRToIssue,
+} from "./graph/neo4j";
 import { generateEmbedding, cosineSimilarity } from "./ai/embedder";
+import { extractPRNumber } from "./ingestion/correlator";
+import { getPRForCommit } from "./ingestion/githubIngestion";
 
 const app = express();
 app.use(express.json());
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  }),
+);
 app.use((req, _res, next) => {
   next();
 });
@@ -59,6 +76,90 @@ app.get("/api/repos/:id/graph", async (_req, res) => {
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
+});
+
+app.post("/api/repos/:id/sync-graph", async (req, res) => {
+  const commits = await prisma.commit.findMany({
+    where: { repositoryId: req.params.id },
+  });
+
+  for (const commit of commits) {
+    await createCommitNode({
+      hash: commit.hash,
+      message: commit.message,
+      author: commit.author,
+      date: commit.date,
+      summary: commit.summary || commit.message,
+    });
+  }
+
+  res.json({ synced: commits.length });
+});
+
+app.post("/api/repos/:id/reprocess-prs", async (req, res) => {
+  const commits = await prisma.commit.findMany({
+    where: { repositoryId: req.params.id },
+  });
+
+  const repo = await prisma.repository.findUnique({
+    where: { id: req.params.id },
+  });
+
+  if (!repo) return res.status(404).json({ error: "not found" });
+
+  let linked = 0;
+
+  for (const commit of commits) {
+    const prNumber = extractPRNumber(commit.message);
+    if (!prNumber) continue;
+
+    try {
+      const prData = await getPRForCommit(repo.owner, repo.name, commit.hash);
+      if (!prData) continue;
+
+      await prisma.pullRequest.upsert({
+        where: { number: prData.number },
+        update: {},
+        create: {
+          number: prData.number,
+          title: prData.title,
+          body: prData.body || "",
+          author: prData.author,
+          repositoryId: req.params.id,
+        },
+      });
+
+      await prisma.commit.update({
+        where: { hash: commit.hash },
+        data: { prNumber: prData.number },
+      });
+
+      await createPRNode(prData);
+      await linkCommitToPR(commit.hash, prData.number);
+
+      for (const issue of prData.issues) {
+        await prisma.issue.upsert({
+          where: { number: issue.number },
+          update: {},
+          create: {
+            number: issue.number,
+            title: issue.title,
+            body: issue.body || "",
+            repositoryId: req.params.id,
+          },
+        });
+        await createIssueNode(issue);
+        await linkPRToIssue(prData.number, issue.number);
+      }
+
+      linked++;
+      await sleep(500);
+    } catch (err) {
+      console.error(`Failed PR for ${commit.hash}:`, err);
+    }
+  }
+
+  res.json({ linked });
 });
 
 app.get("/api/repos/:id/commits", async (req, res) => {
@@ -140,7 +241,7 @@ Answer:`;
       }),
     });
 
-    const ollamaData = await ollamaRes.json();
+    const ollamaData = (await ollamaRes.json()) as { response?: string };
 
     res.json({
       answer: ollamaData.response?.trim(),
@@ -165,3 +266,7 @@ app.get("/api/repos", async (_req, res) => {
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {});
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

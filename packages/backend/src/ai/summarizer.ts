@@ -29,7 +29,7 @@ Respond with only the 2-3 sentence explanation. No preamble.`;
       }),
     });
 
-    const result = await response.json();
+    const result = (await response.json()) as { response?: string };
     return result.response?.trim() || "No summary available";
   } catch {
     return "Summary generation failed";

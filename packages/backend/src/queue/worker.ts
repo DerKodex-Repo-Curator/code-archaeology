@@ -1,7 +1,8 @@
-import { Worker, Job } from "bullmq";
-import IORedis from "ioredis";
 import dotenv from "dotenv";
 dotenv.config();
+
+import { Worker, Job } from "bullmq";
+import IORedis from "ioredis";
 
 import {
   cloneRepo,
@@ -31,11 +32,13 @@ export const worker = new Worker(
   async (job: Job) => {
     const { owner, name, repositoryId } = job.data;
 
+    console.log(`Processing: ${owner}/${name}`);
+
     await job.updateProgress(5);
     const repoPath = await cloneRepo(owner, name);
 
     await job.updateProgress(10);
-    const commits = await getCommits(repoPath, 200);
+    const commits = await getCommits(repoPath, 20);
 
     for (let i = 0; i < commits.length; i++) {
       const commit = commits[i];
@@ -47,26 +50,12 @@ export const worker = new Worker(
 
         let prNumber = extractPRNumber(commit.message);
         let prData = null;
+        let resolvedPrNumber: number | null = null;
 
         if (!prNumber) {
           prData = await getPRForCommit(owner, name, commit.hash);
           if (prData) prNumber = prData.number;
         }
-
-        await prisma.commit.upsert({
-          where: { hash: commit.hash },
-          update: {},
-          create: {
-            hash: commit.hash,
-            message: commit.message,
-            author: commit.author,
-            authorEmail: commit.authorEmail,
-            date: commit.date,
-            diff,
-            prNumber: prNumber || null,
-            repositoryId,
-          },
-        });
 
         if (prData) {
           await prisma.pullRequest.upsert({
@@ -82,7 +71,35 @@ export const worker = new Worker(
           });
 
           await createPRNode(prData);
+          resolvedPrNumber = prData.number;
+        }
 
+        if (!resolvedPrNumber && prNumber) {
+          const existingPR = await prisma.pullRequest.findUnique({
+            where: { number: prNumber },
+          });
+
+          if (existingPR) {
+            resolvedPrNumber = prNumber;
+          }
+        }
+
+        await prisma.commit.upsert({
+          where: { hash: commit.hash },
+          update: resolvedPrNumber ? { prNumber: resolvedPrNumber } : {},
+          create: {
+            hash: commit.hash,
+            message: commit.message,
+            author: commit.author,
+            authorEmail: commit.authorEmail,
+            date: commit.date,
+            diff,
+            prNumber: resolvedPrNumber,
+            repositoryId,
+          },
+        });
+
+        if (prData) {
           for (const issue of prData.issues) {
             await prisma.issue.upsert({
               where: { number: issue.number },
@@ -107,8 +124,8 @@ export const worker = new Worker(
           date: commit.date,
         });
 
-        if (prNumber) {
-          await linkCommitToPR(commit.hash, prNumber);
+        if (resolvedPrNumber) {
+          await linkCommitToPR(commit.hash, resolvedPrNumber);
         }
 
         const summary = await summarizeDecision({

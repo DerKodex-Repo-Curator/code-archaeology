@@ -29,7 +29,7 @@ export async function cloneRepo(owner: string, name: string): Promise<string> {
 
 export async function getCommits(
   repoPath: string,
-  maxCount = 200,
+  maxCount = 20,
 ): Promise<RawCommit[]> {
   const git = simpleGit(repoPath);
   const log = await git.log({ maxCount });
