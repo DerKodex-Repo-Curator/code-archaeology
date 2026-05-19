@@ -1,5 +1,3 @@
-// extract issue numbers from commit messages or PR bodies
-// handles: "fixes #123", "closes #45", "resolves #67", "(#89)"
 export function extractIssueNumbers(text: string): number[] {
   const patterns = [
     /(?:fixes|closes|resolves|fix|close|resolve)\s+#(\d+)/gi,

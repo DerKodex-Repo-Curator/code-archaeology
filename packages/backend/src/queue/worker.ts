@@ -32,8 +32,6 @@ export const worker = new Worker(
   async (job: Job) => {
     const { owner, name, repositoryId } = job.data;
 
-    console.log(`Processing: ${owner}/${name}`);
-
     await job.updateProgress(5);
     const repoPath = await cloneRepo(owner, name);
 

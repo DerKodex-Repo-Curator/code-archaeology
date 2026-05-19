@@ -6,7 +6,7 @@ import cors from "cors";
 
 import { prisma } from "./db/prisma";
 import { addRepoJob } from "./queue/producer";
-import "./queue/worker"; // boots the worker
+import "./queue/worker";
 import {
   createCommitNode,
   createIssueNode,
@@ -154,9 +154,7 @@ app.post("/api/repos/:id/reprocess-prs", async (req, res) => {
 
       linked++;
       await sleep(500);
-    } catch (err) {
-      console.error(`Failed PR for ${commit.hash}:`, err);
-    }
+    } catch (err) {}
   }
 
   res.json({ linked });
