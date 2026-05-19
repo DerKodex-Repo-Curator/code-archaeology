@@ -2,10 +2,9 @@
 
 > **Git blame tells you WHO. Code Archaeology tells you WHY.**
 
-A developer tool that traces the *why* behind every line of code — correlating git history, pull requests, and issues into an interactive decision graph, powered by local AI.
+A developer tool that traces the _why_ behind every line of code — correlating git history, pull requests, and issues into an interactive decision graph, powered by local AI.
 
 ![Graph View](https://img.shields.io/badge/status-MVP-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-blue)
 ![Node](https://img.shields.io/badge/node-20%2B-green)
 ![pnpm](https://img.shields.io/badge/pnpm-monorepo-orange)
 
@@ -29,7 +28,7 @@ Why 13? Why EU? The senior who wrote it left. Slack has no record. You read 400 
 
 ## ✨ What It Does
 
-Code Archaeology ingests a GitHub repository and builds a **visual decision graph** that answers *why* code exists.
+Code Archaeology ingests a GitHub repository and builds a **visual decision graph** that answers _why_ code exists.
 
 - 🔗 **Correlates** git blame → commits → PRs → issues automatically
 - 🤖 **AI summaries** for every commit using local Ollama (fully offline)
@@ -41,20 +40,20 @@ Code Archaeology ingests a GitHub repository and builds a **visual decision grap
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js 15, React Flow, TypeScript |
-| Backend | Node.js, Express, TypeScript |
-| Queue | BullMQ + Redis |
-| Git Ingestion | simple-git |
-| GitHub Data | Octokit + GraphQL API |
-| Graph DB | Neo4j |
-| Relational DB | PostgreSQL + Prisma |
-| AI Summarization | Ollama (llama3.2) |
-| Embeddings | nomic-embed-text |
-| Semantic Search | RAG (cosine similarity) |
-| Monorepo | pnpm workspaces |
-| Infrastructure | Docker Compose |
+| Layer            | Technology                         |
+| ---------------- | ---------------------------------- |
+| Frontend         | Next.js 15, React Flow, TypeScript |
+| Backend          | Node.js, Express, TypeScript       |
+| Queue            | BullMQ + Redis                     |
+| Git Ingestion    | simple-git                         |
+| GitHub Data      | Octokit + GraphQL API              |
+| Graph DB         | Neo4j                              |
+| Relational DB    | PostgreSQL + Prisma                |
+| AI Summarization | Ollama (llama3.2)                  |
+| Embeddings       | nomic-embed-text                   |
+| Semantic Search  | RAG (cosine similarity)            |
+| Monorepo         | pnpm workspaces                    |
+| Infrastructure   | Docker Compose                     |
 
 ---
 
@@ -130,6 +129,7 @@ cp packages/backend/.env.example packages/backend/.env
 ```
 
 Fill in your values:
+
 ```env
 DATABASE_URL="postgresql://admin:admin@localhost:5433/archaeology"
 REDIS_URL="redis://localhost:6380"
@@ -172,7 +172,7 @@ Open [http://localhost:3000](http://localhost:3000) 🎉
 
 ```
 "Why was the qs dependency bumped?"
-"What security issues were fixed?"  
+"What security issues were fixed?"
 "Why was the auth flow changed?"
 ```
 
@@ -223,7 +223,6 @@ PRs welcome. This project is early — there's a lot to build.
 5. Open a PR
 
 ---
-
 
 <p align="center">
   Built with 🧠 by Prabodh
